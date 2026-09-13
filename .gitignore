@@ -1,8 +1,54 @@
+# .gitignore dibuat secara otomatis oleh Ghighais Brain - Smart Gitignore Generator
+# Dibuat pada: 13/9/2026, 14.43.52
+
+# === Node.js / React / Vue / Vite ===
 node_modules/
-build/
 dist/
-coverage/
+dist-ssr/
+build/
+.next/
+.nuxt/
+.vuepress/dist
+.serverless/
+.cache/
+.parcel-cache/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+bun.lockb
+
+# === Universal Security & Environment (Mandatori) ===
+.env
+.env.local
+.env.*.local
+*.env
+*.env.*
+!*.env.example
+*.pem
+*.key
+*.cert
+*.crt
+secrets.json
+credentials.json
+
+# === Universal OS & Editor Artifacts ===
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
 *.log
-.env*
-!.env.example
+*.bak
+*.tmp
+*.swp
+*~
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
